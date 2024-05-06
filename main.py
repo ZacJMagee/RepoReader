@@ -5,7 +5,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from file_processing import clone_github_repo, load_and_index_files, search_documents, format_documents, format_user_question
-from questions import ask_question, QuestionContext
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
