@@ -1,6 +1,5 @@
 # questions.py
-from utils import format_documents
-from file_processing import search_documents
+from file_processing import search_documents, format_documents
 
 class QuestionContext:
     def __init__(self, index, documents, llm_chain, model_name, repo_name, github_url, conversation_history, file_type_counts, filenames):

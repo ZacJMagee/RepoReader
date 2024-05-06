@@ -1,4 +1,6 @@
 # file_processing.py
+import re
+import nltk
 import os
 import uuid
 import subprocess
@@ -7,7 +9,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
 from langchain_community.document_loaders import DirectoryLoader, NotebookLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from utils import clean_and_tokenize
+
+nltk.download("punkt")
 
 def clone_github_repo(github_url, local_path):
     try:
@@ -83,3 +86,22 @@ def search_documents(query, index, documents, n_results=5):
     unique_top_document_indices = list(set(combined_scores.argsort()[::-1]))[:n_results]
 
     return [documents[i] for i in unique_top_document_indices]
+
+def clean_and_tokenize(text):
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'<[^>]*>', '', text)
+    text = re.sub(r'\[.*?\]', '', text)
+    text = re.sub(r'\(.*?\)', '', text)
+    text = re.sub(r'\b(?:http|ftp)s?://\S+', '', text)
+    text = re.sub(r'\W', ' ', text)
+    text = re.sub(r'\d+', '', text)
+    text = text.lower()
+    return nltk.word_tokenize(text)
+
+def format_documents(documents):
+    numbered_docs = "\n".join([f"{i+1}. {os.path.basename(doc.metadata['source'])}: {doc.page_content}" for i, doc in enumerate(documents)])
+    return numbered_docs
+
+def format_user_question(question):
+    question = re.sub(r'\s+', ' ', question).strip()
+    return question
