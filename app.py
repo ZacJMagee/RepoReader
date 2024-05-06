@@ -1,5 +1,6 @@
 # app.py
-from main import main
+from main import ApplicationController
 
 if __name__ == "__main__":
-    main()
+    app_controller = ApplicationController()
+    app_controller.main()
