@@ -47,9 +47,9 @@ def ask_question(question, context: QuestionContext):
     return answer_with_sources
 
 def main():
-    github_url = input("Enter the GitHub URL of the repository: ")
+    github_url = input(WHITE + "Enter the GitHub URL of the repository: " + RESET_COLOR)
     repo_name = github_url.split("/")[-1]
-    print("Cloning the repository...")
+    print(WHITE + "Cloning the repository..." + RESET_COLOR)
     with tempfile.TemporaryDirectory() as local_path:
         if clone_github_repo(github_url, local_path):
             index, documents, file_type_counts, filenames = load_and_index_files(local_path)
@@ -58,7 +58,7 @@ def main():
                 exit()
 
             print("Repository cloned. Indexing files...")
-            llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
+            llm = ChatOpenAI(model=model_name, temperature=0)
 
             # Create strings that will be used in the system message template
             file_type_counts_str = ', '.join(f"{k}: {v}" for k, v in file_type_counts.items())
@@ -76,16 +76,18 @@ def main():
 
             conversation_history = ""
             while True:
-                user_question = input("\nAsk a question about the repository (type 'exit()' to quit): ")
+                user_question = input(WHITE + "\nAsk a question about the repository (type 'exit()' to quit): " + RESET_COLOR)
                 if user_question.lower() == 'exit()':
                     break
-                print('Thinking...')
+                print(WHITE + 'Thinking...' + RESET_COLOR)
 
                 # Invoke with a dictionary that matches the variable names used in the template
                 full_response = chain.invoke({"user_question": user_question})
 
-                # Properly accessing the AIMessage object and printing the entire object
-                print(f'\nFULL RESPONSE\n{full_response}\n')
-                conversation_history += f"Question: {user_question}\nFull Response: {full_response}\n"
+                # Handle the response correctly assuming it is an individual AIMessage object
+                content = full_response.content
+                token_usage = full_response.response_metadata['token_usage']
+                print(GREEN + f'\nFULL RESPONSE\nContent: {content}\nToken Usage: Completion: {token_usage["completion_tokens"]}, Prompt: {token_usage["prompt_tokens"]}, Total: {token_usage["total_tokens"]}' + RESET_COLOR)
+                conversation_history += f"Question: {user_question}\nFull Response: Content: {content}, Token Usage: {token_usage}\n"
         else:
             print("Failed to clone the repository.")
