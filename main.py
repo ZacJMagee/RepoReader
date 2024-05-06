@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
-from langchain_community.document_loaders import DirectoryLoader, NotebookLoader
+from langchain_community.document_loaders import DirectoryLoader, NotebookLoader, PythonLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 load_dotenv()
@@ -49,21 +49,53 @@ class RepositoryManager:
             return False
 
     def load_and_index_files(self, repo_path):
-        extensions = ['txt', 'md', 'markdown', 'rst', 'py', 'js', 'java', 'c', 'cpp', 'cs', 'go', 'rb', 'php', 'scala', 'html', 'htm', 'xml', 'json', 'yaml', 'yml', 'ini', 'toml', 'cfg', 'conf', 'sh', 'bash', 'css', 'scss', 'sql', 'gitignore', 'dockerignore', 'editorconfig', 'ipynb']
+        extensions = {
+            'txt': TextLoader,
+            'md': TextLoader,
+            'markdown': TextLoader,
+            'rst': TextLoader,
+            'py': PythonLoader,
+            'js': TextLoader,
+            'java': TextLoader,
+            'c': TextLoader,
+            'cpp': TextLoader,
+            'cs': TextLoader,
+            'go': TextLoader,
+            'rb': TextLoader,
+            'php': TextLoader,
+            'scala': TextLoader,
+            'html': TextLoader,
+            'htm': TextLoader,
+            'xml': TextLoader,
+            'json': TextLoader,
+            'yaml': TextLoader,
+            'yml': TextLoader,
+            'ini': TextLoader,
+            'toml': TextLoader,
+            'cfg': TextLoader,
+            'conf': TextLoader,
+            'sh': TextLoader,
+            'bash': TextLoader,
+            'css': TextLoader,
+            'scss': TextLoader,
+            'sql': TextLoader,
+            'editorconfig': TextLoader,
+            'ipynb': NotebookLoader  # Special case for Jupyter notebooks
+        }
 
         file_type_counts = {}
         documents_dict = {}
 
-        for ext in extensions:
+        for ext, LoaderClass in extensions.items():
             glob_pattern = f'**/*.{ext}'
+            loader_kwargs = {'autodetect_encoding': True} if LoaderClass is TextLoader else {}
             try:
-                loader = None
-                if ext == 'ipynb':
-                    loader = NotebookLoader(str(repo_path), include_outputs=True, max_output_length=20, remove_newline=True)
+                if LoaderClass is NotebookLoader:
+                    loader = LoaderClass(repo_path, include_outputs=True, max_output_length=20, remove_newline=True)
                 else:
-                    loader = DirectoryLoader(repo_path, glob=glob_pattern)
+                    loader = DirectoryLoader(repo_path, glob=glob_pattern, loader_cls=LoaderClass, loader_kwargs=loader_kwargs, silent_errors=True)
 
-                loaded_documents = loader.load() if callable(loader.load) else []
+                loaded_documents = loader.load()
                 if loaded_documents:
                     file_type_counts[ext] = len(loaded_documents)
                     for doc in loaded_documents:
@@ -140,11 +172,16 @@ class SearchAndQueryManager:
         return question
 
 
+    
     def ask_question(self, question, context):
+        # Search for the top 5 most relevant documents based on the query
         relevant_docs = self.search_documents(question, context.index, context.documents, n_results=5)
+        
+        # Format the documents into a more concise context
         numbered_documents = self.format_documents(relevant_docs)
-        question_context = f"This question is about the GitHub repository '{context.repo_name}' available at {context.github_url}. The most relevant documents are:\n\n{numbered_documents}"
+        question_context = f"This question is about the GitHub repository '{context.repo_name}' available at {context.github_url}. Here are the most relevant documents:\n\n{numbered_documents}"
 
+        # Run the LLM query with the formatted, concise context
         answer_with_sources = context.llm_chain.run(
             model=context.model_name,
             question=question,
