@@ -3,6 +3,10 @@ import tempfile
 import uuid
 import uuid
 import subprocess
+import chainlit as cl
+from langchain.schema import StrOutputParser
+from langchain.schema.runnable import Runnable
+from langchain.schema.runnable.config import RunnableConfig
 from dotenv import load_dotenv
 from langchain.indexes import SQLRecordManager, index
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,6 +25,31 @@ WHITE = "\033[37m"
 GREEN = "\033[32m"
 RESET_COLOR = "\033[0m"
 model_name = "gpt-3.5-turbo"
+
+@cl.on_chat_start
+async def on_chat_start():
+    # Model initialization for LangChain
+    model = ChatOpenAI(model_name="gpt-3.5-turbo", streaming=True)
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are assisting with repository analysis. Ask anything."),
+        ("human", "{question}")
+    ])
+    runnable = prompt | model | StrOutputParser()
+    cl.user_session.set("runnable", runnable)
+
+@cl.on_message
+async def on_message(message: cl.Message):
+    runnable = cl.user_session.get("runnable")  # Retrieve the runnable instance
+
+    msg = cl.Message(content="")
+
+    async for chunk in runnable.astream(
+        {"question": message.content},
+        config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler(stream_final_answer=True)]),
+    ):
+        await msg.stream_token(chunk)
+
+    await msg.send()
 
 class QuestionContext:
     def __init__(self, index, documents, llm_chain, model_name, repo_name, github_url, conversation_history, file_type_counts, filenames):
@@ -244,4 +273,8 @@ class ApplicationController:
 
 if __name__ == "__main__":
     app_controller = ApplicationController()
-    app_controller.main()
+    try:
+        app_controller.main()
+    finally:
+        import chainlit as cl
+        cl.run("main.py", port=2835, debug=True, auto_reload=True)
