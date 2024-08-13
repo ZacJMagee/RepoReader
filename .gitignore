@@ -1,3 +1,48 @@
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+
+# Ignore environment variables
 .env
-env
-__pycache__
+
+# Ignore database files
+*.db
+
+# Ignore Chainlit specific files (if you don't want to track them)
+.chainlit/
+
+# Ignore Chroma DB directory
+chroma_db/
+
+# Ignore other files or directories (adjust as needed)
+*.log
+*.tmp
+
+# Ignore other typical Python project files
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Ignore IDE/editor config files (adjust for your specific editor)
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Ignore anything in the .gitignore file itself (in case it gets modified)
+.gitignore
